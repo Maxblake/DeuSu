@@ -127,6 +127,56 @@ begin
 end;
 
 
+
+function GetTLDFromHost(const HostName: shortstring):shortstring;
+var
+    i, j: integer;
+begin
+    i := Length(Hostname);
+    while i >= 1 do
+    begin
+        if HostName[i] = '.' then break;
+        Dec(i);
+    end;
+
+    if i = 0 then i := 1;
+
+    j := 0;
+
+    while i <= Length(Hostname) do
+    begin
+        Inc(j);
+        Result[j] := HostName[i];
+        Inc(i);
+    end;
+    SetLength(Result, j);
+end;
+
+
+
+
+function NormalizedHostName(HostName: shortstring):shortstring;
+var
+    TLD: shortstring;
+    i: integer;
+begin
+    TLD := GetTLDFromHost(HostName);
+    SetLength(Hostname, Length(HostName) - Length(TLD));
+
+    TLD := GetTLDFromHost(HostName);
+    if (TLD = '.com') or (TLD = '.co') or (TLD = '.edu') then
+        SetLength(Hostname, Length(HostName) - Length(TLD));
+
+    repeat
+        i := Pos('.', HostName);
+        if i>0 then Delete(HostName, 1, i);
+    until i = 0;
+
+    Result := HostName;
+end;
+
+
+
 procedure AddEntry(const s: shortstring; UrlPo, InLinkCount: int64; IsDACH: boolean);
 { Eine URL in die interne URL-Liste aufnehmen, falls die Maximalzahl von URLs für diesen Host noch nicht erreicht sind. }
 var
@@ -151,7 +201,7 @@ begin
     begin
         HostName := LowerCase(copy(s, 1, Pos('/', s) - 1)); { Wir wollen nur den Hostnamen komplett in Kleinbuchstaben }
 
-        SLD := HostName;
+        SLD := NormalizedHostName(HostName);
         (*
             This code was used to reduce the hostname to a 2nd-level
             domain. I *think* it's better to use the hostname instead.
