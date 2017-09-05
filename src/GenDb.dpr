@@ -62,6 +62,7 @@ var
     BackLinksFromAge: boolean;
     OutputDir: string;
     BeginWithShard, EndWithShard, ShardMask: int32;
+    MaxAge: int32;
     // FilterAn: integer;
     // FiAn: array[1..8] of integer;
     // Fi: array[1..8,1..2000] of pstr255;
@@ -338,6 +339,14 @@ begin
 
                 DoAdd := (j = -1) (* and (Pos('?', PageInfo.Url) = 0) *) and
                 (Pos(#39, PageInfo.Url) = 0);
+
+                if MaxAge <> -1 then
+                begin
+                    if (CurrentTime - (0.001*GetBackLinkCount(fUrls, PageInfo.Url))) > MaxAge then
+                        DoAdd := false;
+                end;
+
+
                 if DoAdd then
                 begin
                     ShardNr := DocumentID and (cDbCount-1);
@@ -1209,6 +1218,7 @@ begin
     BeginWithShard := 0;
     EndWithShard := cDbCount-1;
     ShardMask := cDbCount-1;
+    MaxAge := -1;
 
     i := 1;
     while i <= ParamCount do
@@ -1218,6 +1228,14 @@ begin
             (S = '-backlinksfromage') or // For backwards compatibility only
             (s = '--backlinksfromage') then
             BackLinksFromAge := true;
+
+        if (s = '--maxage') then
+        // Only makes sense when used together with BackLinksFromAge
+        begin
+            Inc(i);
+            MaxAge := StrToIntDef(ParamStr(i), 0);
+            if MaxAge < -1 then MaxAge := -1;
+        end;
 
         if (s = '-o') or
             (S = '-outputdir') or // For backwards compatibility only
